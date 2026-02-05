@@ -1,3 +1,39 @@
+function getInvestigationPrompt(
+	stepDescription: string,
+	substepDescription: string,
+	requirements: Array<{ id: string; description: string; category: string }>,
+	chatHistory: string,
+): string {
+	return `Investigate the implementation to understand how to test these requirements.
+
+## PARENT STEP:
+${stepDescription}
+
+## SUBSTEP:
+${substepDescription}
+
+## REQUIREMENTS TO TEST (${requirements.length}):
+${requirements
+		.map(
+			(r, i) => `${i + 1}. [${r.id}] ${r.description}
+   Category: ${r.category}
+   Test method: test_${r.id.replace(/-/g, "_")}_<descriptive_name>`,
+		)
+		.join("\n\n")}
+
+## CHAT HISTORY:
+${chatHistory}
+
+## YOUR TASK:
+Use tools to investigate the code and understand:
+- Where each requirement is implemented
+- What files contain the relevant code
+- How the implementation works
+- What needs to be tested
+
+Read implementation files, search for relevant code, and gather information about how to test each requirement.`
+}
+
 export function getTestSubstepRequirementsPrompt(
 	stepDescription: string,
 	substepDescription: string,
@@ -7,41 +43,25 @@ export function getTestSubstepRequirementsPrompt(
 	chatHistory: string,
 	existingTestFile?: string,
 ): string {
+	// Returns ONLY the investigation prompt for Phase 1
+	return getInvestigationPrompt(stepDescription, substepDescription, requirements, chatHistory)
+}
+
+export function getTestWritingInstructions(
+	requirements: Array<{ id: string; description: string; category: string }>,
+	workspaceDir: string,
+	testFilePath: string,
+	existingTestFile?: string,
+): string {
+	// Returns detailed formatting instructions for Phase 2
 	const mode = existingTestFile ? "UPDATE" : "CREATE"
 
-	let prompt = `# Task: ${mode} Tests for Specific Requirements
-
-## Current Mode: ${mode}
-
-${stepDescription ? `## Step Description\n${stepDescription}\n` : ""}
-${substepDescription ? `## Substep Description\n${substepDescription}\n` : ""}
-
-## Requirements to Test (${requirements.length})
-
-${requirements
-	.map(
-		(req, i) => `
-### ${i + 1}. [${req.id}] ${req.description}
-- **Category**: ${req.category}
-- **Test Method Name**: test_${req.id.replace(/-/g, "_")}_<descriptive_name>
-`,
-	)
-	.join("\n")}
-
-## Test File Path
-**${mode === "UPDATE" ? "Update" : "Write"} tests to**: \`${testFilePath}\`
-
-## Workspace Context
-**Workspace root**: \`${workspaceDir}\`
-**Execute tests FROM**: \`${workspaceDir}\` (for proper imports)
-
-## Chat History
-${chatHistory}
+	let instructions = `Now write the test file to: ${testFilePath}
 
 `
 
 	if (existingTestFile) {
-		prompt += `## Existing Test File
+		instructions += `## Existing Test File
 
 \`\`\`python
 ${existingTestFile}
@@ -90,11 +110,11 @@ ${existingTestFile}
            raise
    \`\`\`
 
-4. **Write the complete updated file** to: \`${testFilePath}\`
+4. **Write the complete updated file** using write_to_file tool.
 
 `
 	} else {
-		prompt += `## Instructions for CREATING New Test File
+		instructions += `## Instructions for CREATING New Test File
 
 **You must write a complete test file with this structure**:
 
@@ -164,47 +184,21 @@ if __name__ == '__main__':
     unittest.main()
 \`\`\`
 
-**Generate test methods for ALL requirements listed above.**
+**Generate test methods for ALL ${requirements.length} requirements.**
 
 `
 	}
 
-	prompt += `
-## Available Tools
+	instructions += `
+## Key Points:
 
-- **read_file**: Read implementation files to understand code
-- **write_to_file**: ${mode === "UPDATE" ? "Update" : "Create"} the test file
-- **search_files**: Find related code
-- **execute_command**: Run commands (git, grep, etc.)
-
-## Instructions - YOU MUST USE TOOLS
-
-⚠️ **DO NOT JUST RESPOND - YOU MUST USE TOOLS TO COMPLETE THIS TASK**
-
-### Step 1: Investigate Implementation (use tools!)
-
-Before writing tests, you MUST understand the implementation:
-- Use **read_file** to read implementation files mentioned in chat history
-- Use **search_files** to find where requirements are implemented
-- Examine the actual code to understand what to test
-
-### Step 2: Write Test File (use write_to_file!)
-
-Once you understand the implementation:
 - Use **write_to_file** to ${mode === "UPDATE" ? "update" : "create"}: \`${testFilePath}\`
-- Include test methods following the format shown above
-- **Maximum 3 test methods per requirement** (prefer just 1 unless absolutely necessary)
 - Each test must include requirement_id in print_test_result()
 - Use clear test names: test_req_{id}_<descriptive_name>
+- **Maximum 3 test methods per requirement** (prefer just 1)
+- Each requirement should have exactly ONE test method unless multiple scenarios are genuinely needed
 
-⚠️ IMPORTANT: Most requirements should have exactly ONE test method. Only create 2-3 tests if the requirement genuinely needs to test multiple distinct scenarios (e.g., success case + error handling + edge case). Avoid creating redundant tests.
+Use the write_to_file tool now to create the test file.`
 
-### Step 3: Done
-
-After you write the test file, you're done. The test will be run automatically.
-
-**START NOW by using read_file to examine the implementation files!**
-`
-
-	return prompt
+	return instructions
 }

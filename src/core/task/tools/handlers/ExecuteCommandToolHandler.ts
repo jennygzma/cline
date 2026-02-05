@@ -7,6 +7,8 @@ import { ClineAsk } from "@shared/ExtensionMessage"
 import { arePathsEqual } from "@utils/path"
 import { telemetryService } from "@/services/telemetry"
 import { ClineDefaultTool } from "@/shared/tools"
+import * as fs from "fs"
+import * as path from "path"
 import type { ToolResponse } from "../../index"
 import { showNotificationForApproval } from "../../utils"
 import type { IFullyManagedTool } from "../ToolExecutorCoordinator"
@@ -130,6 +132,31 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 			await config.callbacks.say("clineignore_error", ignoredFileAttemptedToAccess)
 			return formatResponse.toolError(formatResponse.clineIgnoreError(ignoredFileAttemptedToAccess))
 		}
+
+		// Auto-prepend conda activation for Zoro commands
+		const zoroIntegrationPath = path.join(config.cwd, ".clinerules", "zoro_integration.md")
+		console.log("[ZORO DEBUG] Checking for zoro integration:")
+		console.log("  - config.cwd:", config.cwd)
+		console.log("  - zoroIntegrationPath:", zoroIntegrationPath)
+		console.log("  - file exists:", fs.existsSync(zoroIntegrationPath))
+		console.log("  - actualCommand:", actualCommand)
+		console.log("  - starts with 'zoro':", actualCommand.trim().startsWith("zoro"))
+		
+		if (fs.existsSync(zoroIntegrationPath)) {
+			// Only activate conda for commands that start with 'zoro'
+			if (actualCommand.trim().startsWith("zoro") && !actualCommand.includes("conda activate zoro")) {
+				console.log("[ZORO DEBUG] ✅ Prepending conda activate zoro")
+				actualCommand = `conda activate zoro && ${actualCommand}`
+			} else {
+				console.log("[ZORO DEBUG] ❌ Not prepending because:", {
+					startsWithZoro: actualCommand.trim().startsWith("zoro"),
+					alreadyHasConda: actualCommand.includes("conda activate zoro")
+				})
+			}
+		} else {
+			console.log("[ZORO DEBUG] ❌ zoro_integration.md not found")
+		}
+		console.log("  - final command:", actualCommand)
 
 		let didAutoApprove = false
 

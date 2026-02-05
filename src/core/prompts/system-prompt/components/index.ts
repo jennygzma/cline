@@ -3,6 +3,7 @@ import { getActVsPlanModeSection } from "./act_vs_plan_mode"
 import { getAgentRoleSection } from "./agent_role"
 import { getCapabilitiesSection } from "./capabilities"
 import { getCliSubagentsSection } from "./cli_subagents"
+import { generateCriticalProjectRules } from "./critical-project-rules"
 import { getEditingFilesSection } from "./editing_files"
 import { getFeedbackSection } from "./feedback"
 import { getMcp } from "./mcp"
@@ -21,6 +22,7 @@ import { getUserInstructions } from "./user_instructions"
  */
 export function getSystemPromptComponents() {
 	return [
+		{ id: SystemPromptSection.CRITICAL_PROJECT_RULES, fn: generateCriticalProjectRules },
 		{ id: SystemPromptSection.AGENT_ROLE, fn: getAgentRoleSection },
 		{ id: SystemPromptSection.SYSTEM_INFO, fn: getSystemInfo },
 		{ id: SystemPromptSection.MCP, fn: getMcp },

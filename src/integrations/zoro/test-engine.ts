@@ -4,10 +4,10 @@ import * as fs from "fs"
 import { executeThroughCline, getWorkspaceDirectory, loadChatHistory } from "./cline-execution"
 import { EnforcementRequest, EnforcementResponse, RequirementTestsResponse, RequirementTest } from "./types"
 import { getExecuteTestPrompt } from "./prompts/generate-test"
-import { getTestSubstepRequirementsPrompt } from "./prompts/test-substep-requirements"
+import { getTestSubstepRequirementsPrompt, getTestWritingInstructions } from "./prompts/test-substep-requirements"
 
 const TEST_SUBSTEP_SYSTEM_PROMPT = "You are a code execution assistant. Use tools to make observations to fix the gaps identified. You will ultimately be writing unit tests."
-const TEST_REQUIREMENTS_SYSTEM_PROMPT = "You are a test generation assistant. Write comprehensive tests for specific requirements."
+const TEST_REQUIREMENTS_SYSTEM_PROMPT = "You are a test generation assistant. Use tools to investigate the implementation, then write comprehensive tests for specific requirements."
 
 export async function generateAndRunTests(request: EnforcementRequest, verification: EnforcementResponse): Promise<any> {
     try {
@@ -56,7 +56,11 @@ export async function generateAndRunTests(request: EnforcementRequest, verificat
                     type: "text",
                     text: `Now you MUST write the test file to: ${testFilePath}
 
-Use the write_to_file tool. This is CRITICAL - the file must be created at this exact path.`,
+You MUST use the write_to_file tool to create your tests. Ensure that the tests are logically valid and aligned with the actual code structure. You may use the read_file tool to inspect existing files when needed.
+
+For example, if a file imports multiple symbols from MUI, you should not test for a single direct import statement in isolation.
+
+This is critical: the test file must be created at the exact specified path.`,
                 },
             ],
         })
@@ -282,16 +286,18 @@ export async function testSubstepRequirements(
 
         // 7. PHASE 2: Write/update test file (3 iterations)
         console.log("[test-engine] PHASE 2: Writing test file")
+        const writingInstructions = getTestWritingInstructions(
+            requirements,
+            workspaceDir,
+            testFilePath,
+            existingTestFile,
+        )
         messages.push({
             role: "user",
             content: [
                 {
                     type: "text",
-                    text: `Now write the complete test file to: ${testFilePath}
-
-${existingTestFile ? "Update the existing test methods for the specified requirements and preserve all other code." : "Create a complete test file with all requirements."}
-
-Use the write_to_file tool. This is CRITICAL.`,
+                    text: writingInstructions,
                 },
             ],
         })

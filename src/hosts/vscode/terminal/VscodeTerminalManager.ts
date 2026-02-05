@@ -165,6 +165,21 @@ export class VscodeTerminalManager implements ITerminalManager {
 		// Cast to VSCode-specific TerminalInfo for internal use
 		// Using unknown as intermediate cast due to structural differences between ITerminal and vscode.Terminal
 		const vscodeTerminalInfo = terminalInfo as unknown as TerminalInfo
+
+		// Auto-prepend conda activation for Zoro commands
+		if (command.trim().startsWith("zoro") && !command.includes("conda activate zoro")) {
+			const cwd = vscodeTerminalInfo.terminal.shellIntegration?.cwd?.fsPath
+			if (cwd) {
+				const fs = require("fs")
+				const path = require("path")
+				const zoroIntegrationPath = path.join(cwd, ".clinerules", "zoro_integration.md")
+				if (fs.existsSync(zoroIntegrationPath)) {
+					command = `conda activate zoro && ${command}`
+					console.log(`[TerminalManager] Prepended conda activate for zoro command`)
+				}
+			}
+		}
+
 		console.log(`[TerminalManager] Running command on terminal ${vscodeTerminalInfo.id}: "${command}"`)
 		console.log(`[TerminalManager] Terminal ${vscodeTerminalInfo.id} busy state before: ${vscodeTerminalInfo.busy}`)
 
