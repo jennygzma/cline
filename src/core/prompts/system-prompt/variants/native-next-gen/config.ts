@@ -30,6 +30,7 @@ export const config = createVariant(ModelFamily.NATIVE_NEXT_GEN)
 	})
 	.template(TEMPLATE_OVERRIDES.BASE)
 	.components(
+		SystemPromptSection.CRITICAL_PROJECT_RULES,
 		SystemPromptSection.AGENT_ROLE,
 		SystemPromptSection.TOOL_USE,
 		SystemPromptSection.TODO,

@@ -58,7 +58,19 @@ This is a ZORO project with MANDATORY integration requirements that MUST be foll
 		try {
 			const planContent = fs.readFileSync(zoroPlanPath, "utf-8")
 			console.log(`  - Read ${planContent.length} chars from zoro_plan.md`)
-			rulesContent += `## Current Zoro Plan\n\n${planContent}\n\n`
+			rulesContent += `## 🎯 ZORO PLAN - MUST REFERENCE BEFORE EVERY RESPONSE
+
+⚠️ MANDATORY WORKFLOW:
+Before taking ANY action, you MUST:
+1. Explicitly check how your action aligns with this plan
+2. State which step of the plan you're working on
+3. Confirm the action matches the plan's strategy
+
+${planContent}
+
+🚨 CRITICAL: You must reference this plan in your reasoning for EVERY message. Failure to do so violates project requirements.
+
+`
 		} catch (error) {
 			console.log("  - ❌ Error reading zoro_plan.md:", error)
 			rulesContent += `## Current Zoro Plan\n\n[Error reading zoro_plan.md]\n\n`

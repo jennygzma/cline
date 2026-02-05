@@ -28,6 +28,7 @@ export const config = createVariant(ModelFamily.XS)
 	})
 	.template(baseTemplate)
 	.components(
+		SystemPromptSection.CRITICAL_PROJECT_RULES,
 		SystemPromptSection.AGENT_ROLE,
 		SystemPromptSection.TOOL_USE,
 		SystemPromptSection.RULES,

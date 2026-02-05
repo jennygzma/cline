@@ -43,6 +43,7 @@ export const config = createVariant(ModelFamily.NATIVE_GPT_5)
 	})
 	.template(GPT_5_TEMPLATE_OVERRIDES.BASE)
 	.components(
+		SystemPromptSection.CRITICAL_PROJECT_RULES,
 		SystemPromptSection.AGENT_ROLE,
 		SystemPromptSection.TOOL_USE,
 		SystemPromptSection.TASK_PROGRESS,
